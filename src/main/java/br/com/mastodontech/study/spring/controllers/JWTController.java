@@ -54,12 +54,10 @@ public class JWTController {
         log.info("start getPubKey");
         try {
             Map<String, Object> response = jwtService.getJweInfo();
-            log.info("end getPubKey");
 
             return ResponseEntity
                     .ok(response);
         } catch (Exception e) {
-            log.info("end getPubKey");
             log.error(e.getMessage(), e);
             return ResponseEntity.internalServerError().body(e.getMessage());
         }

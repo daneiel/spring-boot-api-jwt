@@ -85,6 +85,7 @@ public class JWTServiceImpl implements SecurityJWT<JWEExampleDTO> {
         Map<String, Object> jwk = (Map<String, Object>) jweInfo.get("jwk");
         String modulus = (String) jwk.get("n");
         String exponent = (String) jwk.get("e");
+        String alghoritm = (String) jwk.get("kty");
 
         byte[] modulusBytes = Base64.getUrlDecoder().decode(modulus);
         byte[] exponentBytes = Base64.getUrlDecoder().decode(exponent);
@@ -94,7 +95,7 @@ public class JWTServiceImpl implements SecurityJWT<JWEExampleDTO> {
 
         RSAPublicKeySpec publicKeySpec = new RSAPublicKeySpec(modulusBigInt, exponentBigInt);
 
-        KeyFactory keyFactory = KeyFactory.getInstance("RSA");
+        KeyFactory keyFactory = KeyFactory.getInstance(alghoritm);
 
         return (RSAPublicKey) keyFactory.generatePublic(publicKeySpec);
     }
