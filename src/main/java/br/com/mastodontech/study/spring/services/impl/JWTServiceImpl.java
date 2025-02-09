@@ -25,28 +25,11 @@ import java.util.HashMap;
 import java.util.Map;
 
 @Service
-public class JWTServiceImpl implements SecurityJWT<JWEExampleDTO, Object> {
+public class JWTServiceImpl implements SecurityJWT<JWEExampleDTO> {
     @Value("${jwt.public.key}")
     private RSAPublicKey publicKey;
     @Value("${jwt.private.key}")
     private RSAPrivateKey privateKey;
-
-    @Override
-    public String getPublicKeyAsJWT() throws Exception {
-        JWTClaimsSet claims = new JWTClaimsSet.Builder()
-                .issuer("exemplo.com")
-                .subject("usuario")
-                .build();
-
-        // Cria o JWS (assinatura do JWT)
-        JWSHeader header = new JWSHeader.Builder(JWSAlgorithm.RS256).build();
-        Payload payload = new Payload(claims.toJSONObject());
-        JWSSigner signer = new RSASSASigner(privateKey);
-        JWSObject jwsObject = new JWSObject(header, payload);
-        jwsObject.sign(signer);
-
-        return jwsObject.serialize();
-    }
 
     @Override
     public Map<String, Object> getJweInfo() throws Exception {
@@ -70,7 +53,7 @@ public class JWTServiceImpl implements SecurityJWT<JWEExampleDTO, Object> {
     public String encryptJwe(JWEExampleDTO jweExampleDTO) throws Exception {
         RSAPublicKey pubKeyFromJWK = getPubKeyFromJWK();
         JWEHeader header = new JWEHeader.Builder(JWEAlgorithm.RSA_OAEP_256, EncryptionMethod.A256GCM).build();
-        Payload payload = new Payload(GsonUtil.toJson(jweExampleDTO));
+        Payload payload = new Payload(jweExampleDTO.getMessage());
         JWEEncrypter encrypter = new RSAEncrypter(pubKeyFromJWK);
         JWEObject jweObject = new JWEObject(header, payload);
         jweObject.encrypt(encrypter);
@@ -84,9 +67,11 @@ public class JWTServiceImpl implements SecurityJWT<JWEExampleDTO, Object> {
         JWEDecrypter decrypter = new RSADecrypter(privateKey);
         jweObject.decrypt(decrypter);
 
-        return GsonUtil.fromJson(
-                jweObject.getPayload().toString(),
-                JWEExampleDTO.class);
+        JWEExampleDTO jweExampleDTO = new JWEExampleDTO();
+        jweExampleDTO.setMessage(jweObject.getPayload().toString());
+
+        return jweExampleDTO;
+
     }
 
     private PrivateKey getPrivateKey() throws InvalidKeySpecException, NoSuchAlgorithmException {
@@ -97,8 +82,9 @@ public class JWTServiceImpl implements SecurityJWT<JWEExampleDTO, Object> {
 
     private RSAPublicKey getPubKeyFromJWK() throws Exception {
         Map<String, Object> jweInfo = getJweInfo();
-        String modulus = (String) jweInfo.get("n");
-        String exponent = (String) jweInfo.get("e");
+        Map<String, Object> jwk = (Map<String, Object>) jweInfo.get("jwk");
+        String modulus = (String) jwk.get("n");
+        String exponent = (String) jwk.get("e");
 
         byte[] modulusBytes = Base64.getUrlDecoder().decode(modulus);
         byte[] exponentBytes = Base64.getUrlDecoder().decode(exponent);
